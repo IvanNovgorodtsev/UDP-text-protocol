@@ -65,27 +65,25 @@ Server::Server()
 				add = Socket.RecvFrom(buffer, sizeof(buffer));
 				packet.message = string(buffer);	// podstawienie wiadomosci
 				packet.unpacking();			// odpakowanie
+				cout << "[" << packet.getTime() << "]" << " Packed received: " << packet.message << endl;
 
 				// ustawienie Statusu
-				switch (packet.getState())
+				if(packet.getOP()=="O"&&packet.getPO()=="PrzydzielID")
 				{
-				case 0:
-				{
-					cout <<"["<<packet.getTime()<<"]"<< " Packed received: "<< packet.message << endl;
-						
-					packet.setID(CLIENT_ID); CLIENT_ID++;
-					packet.setState(1);
+					packet.setOP("o");
+					packet.setPO("OdbierzID");
 					packet.setTime(nadawanie_czasu());
+					packet.setID(CLIENT_ID); CLIENT_ID++;
 					packet.packing();
 					Socket.SendTo(add, packet.message.c_str(), packet.message.size());
 					sendLR = true;
-					break;
 				}
-				case 2:
+				else if(packet.getOP() == "O"&&packet.getPO() == "LosujZakres")
 				{
 					if (sendLR)
 					{
-						packet.setState(3);
+						packet.setOP("o");
+						packet.setPO("OdbierzZakres");
 						packet.setLiczba(Lvalue);
 						packet.packing();
 						sendLR = false;
@@ -93,43 +91,42 @@ Server::Server()
 					}
 					else
 					{
-						packet.setState(3);
+						packet.setOP("o");
+						packet.setPO("OdbierzZakres");
 						packet.setLiczba(Rvalue);
 						packet.packing();
 						Socket.SendTo(add, packet.message.c_str(), packet.message.size());
 					}
-					break;
 				}
-				case 4:
+				else if(packet.getOP()=="O"&&packet.getPO()=="Request")
 				{
-					packet.setState(5);
+					packet.setOP("o");
+					packet.setPO("Pick");
 					packet.setTime(nadawanie_czasu());
 					packet.packing();
 					Socket.SendTo(add, packet.message.c_str(), packet.message.size());
-					break;
 				}
-				case 6:
+				else if (packet.getOP() == "O" && packet.getPO() == "Sprawdz")
 				{
-					cout << "[" << packet.getTime() << "]" << " Packed received: " << packet.message << endl;
 					if (packet.getLiczba() == RANDOM_NUMBER)
 					{
-						packet.setState(7);
+						packet.setOP("o");
+						packet.setPO("End");
 						packet.setTime(nadawanie_czasu());
 						packet.packing();
 					}
 					else
 					{
-						packet.setState(5);
+						packet.setOP("o");
+						packet.setPO("Pick");
 						packet.setTime(nadawanie_czasu());
 						packet.packing();
 					}
-					Socket.SendTo(add, packet.message.c_str(), packet.message.size());
-					break;
-					
+					Socket.SendTo(add, packet.message.c_str(), packet.message.size());			
 				}
 				}
 			}
-		}
+		
 		catch (std::system_error& e)
 		{
 			std::cout << e.what();

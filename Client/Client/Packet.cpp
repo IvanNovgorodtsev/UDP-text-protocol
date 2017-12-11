@@ -4,79 +4,181 @@
 #include<conio.h>
 using namespace std;
 Packet::Packet() {}
-Packet::Packet(string OP, string PO, int liczba, int ID, int State,string time)
+Packet::Packet(string OP, string PO, string dane, int liczba, string ID_name, int ID, string time_name, string time)
 {
 	this->OP = OP;
 	this->PO = PO;
+	this->dane = dane;
 	this->liczba = liczba;
+	this->ID_name = ID_name;
 	this->ID = ID;
-	this->State = State;
+	this->time_name = time_name;
 	this->time = time;
 }
 
 void Packet::packing()
 {
-	this->message = "#"+OP+"#$"+ 
-					"#"+PO +"#$"+ 
-					"#"+to_string(liczba)+"#$"+
-					"#"+to_string(ID)+"#$"+
-					"#"+to_string(State)+"#$"+
-					"#"+time+"#$";
+	string podmien_liczbe;
+	string podmien_ID;
+	if (liczba == 0)
+	{
+		podmien_liczbe = "";
+	}
+	else
+	{
+		podmien_liczbe = to_string(liczba);
+	}
+	if (ID == 0)
+	{
+		podmien_ID = "";
+	}
+	else
+	{
+		podmien_ID = to_string(ID);
+	}
+	this->message =
+		"#" + OP + "#$" +
+		"#" + PO + "#" +
+		"#" + dane + "#$" +
+		"#" + podmien_liczbe + "#" +
+		"#" + ID_name + "#$" +
+		"#" + podmien_ID + "#" +
+		"#" + time_name + "#$" +
+		"#" + time + "#";
 }
 void Packet::unpacking()
 {
 	string pom;
+	bool flick = true;
 	for (int i = 0, y = 0; i < message.size(); i++)
 	{
-		while (1)
+		if (flick)
 		{
-			if (message[i] == '$')break;
-			pom = pom + message[i];
-			i++;
+			while (1)
+			{
+				if (message[i] == '$' && message[i - 1] == '#') break;
+				pom = pom + message[i];
+				i++;
+			}
+			flick = false;
+
+		}
+		else
+		{
+			while (1)
+			{
+				if (i == message.size())break;
+				if (message[i] == '#'&&message[i + 1] == '#')break;
+				pom = pom + message[i];
+				i++;
+			}
+			flick = true;
 		}
 		y++;
 		switch (y)
 		{
-		case 1:
+		case 1: // OP
 		{
-			OP = pom; pom = "";
-			break;
+			regex reg("[^A-Za-z]+");
+			pom = regex_replace(pom, reg, ""); // czyszczenie # oraz $  // -_-
+			OP = pom; pom = ""; break;
 		}
-		case 2:
+
+		case 2: // PO
 		{
+			regex reg("[^A-Za-z]+");
+			pom = regex_replace(pom, reg, ""); // czyszczenie # oraz $  // -_-
 			PO = pom; pom = ""; break;
 		}
-		case 3:
+		case 3: // Dane
 		{
-			regex reg("[^0-9]+");
+			regex reg("[^A-Za-z]+");
 			pom = regex_replace(pom, reg, ""); // czyszczenie # oraz $  // -_-
-			liczba = stoi(pom);
+			dane = pom; pom = ""; break;
+		}
+		case 4: // liczba
+		{
+			if (pom.size())
+			{
+				regex reg("[^0-9]+");
+				pom = regex_replace(pom, reg, ""); // czyszczenie # oraz $  // -_-
+				liczba = stoi(pom);
+				pom = "";
+				break;
+			}
+			liczba = 0;
 			pom = "";
 			break;
 		}
-		case 4:
+		case 5: // ID_name
 		{
-			regex reg("[^0-9]+");
+			regex reg("[^A-Za-z]+");
 			pom = regex_replace(pom, reg, ""); // czyszczenie # oraz $  // -_-
-			ID = stoi(pom);
+			ID_name = pom; pom = ""; break;
+		}
+		case 6: // ID
+		{
+			if (pom.size())
+			{
+				regex reg("[^0-9]+");
+				pom = regex_replace(pom, reg, ""); // czyszczenie # oraz $  // -_-
+				ID = stoi(pom);
+				pom = "";
+				break;
+			}
+			ID = 0;
 			pom = "";
 			break;
 		}
-		case 5:
+		case 7: //time_name
 		{
-			regex reg("[^0-9]+");
+			regex reg("[^A-Za-z]+");
 			pom = regex_replace(pom, reg, ""); // czyszczenie # oraz $  // -_-
-			State = stoi(pom);
-			pom = "";
-			break;
+			time_name = pom; pom = ""; break;
 		}
-		case 6:
+		case 8: //time
 		{
-			if (pom.size()>0)time = pom; pom = ""; break;
+			regex reg("[^0-9.:]");
+			pom = regex_replace(pom, reg, ""); // czyszczenie # oraz $  // -_-
+			time = pom; pom = ""; break;
 			break;
 		}
 		}
+
 	}
+	//cout << OP << " " << PO << " " << dane << " " << liczba << " " << ID_name << " " << ID << " " << time_name << " " << time;
+	//_getch();
+}
+
+
+void Packet::setDane(string dane)
+{
+	this->dane = dane;
+}
+
+string Packet::getDane()
+{
+	return this->dane;
+}
+
+void Packet::setID_name(string name)
+{
+	this->ID_name = name;
+}
+
+string Packet::getID_name()
+{
+	return this->ID_name;
+}
+
+void Packet::setTime_name(string time)
+{
+	this->time_name = time;
+}
+
+string Packet::getTime_name()
+{
+	return this->time_name;
 }
 
 void Packet::setMessage(string m)
@@ -97,15 +199,6 @@ void Packet::setTime(string time)
 string Packet::getTime()
 {
 	return this->time;
-}
-
-void Packet::setState(int s)
-{
-	this->State = s;
-}
-int Packet::getState()
-{
-	return this->State;
 }
 
 void Packet::setID(int id)
@@ -135,4 +228,13 @@ void Packet::setOP(string OP)
 string Packet::getOP()
 {
 	return this->OP;
+}
+
+void Packet::setPO(string PO)
+{
+	this->PO = PO;
+}
+string Packet::getPO()
+{
+	return this->PO;
 }

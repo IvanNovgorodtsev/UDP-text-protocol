@@ -32,35 +32,31 @@ Client::Client()
 		if (ReturnCheck == SOCKET_ERROR)//Tell the user that we could not find a usable Winsock DLL.
 			throw std::system_error(WSAGetLastError(), std::system_category(), "WSAStartup Failed");
 
-
-
 		UDPSocket Socket;
-		Packet packet("Przydziel", "ID", 0, 0, 0, nadawanie_czasu());
+		Packet packet("O", "PrzydzielID", "Dane", 0, "ID", 0, "Czas", nadawanie_czasu());
 		packet.packing();
 		int client_number;
-		int L1=0, L2=0;
+		int L1 = 0, L2 = 0;
 		char buffer[100];
 		bool inicjalizacja = true;
 		bool getLR = false;
 
 		while (1)
 		{
-			Socket.SendTo("192.168.1.2", 1111, packet.message.c_str(), packet.message.size()); // pierwszy pusty
+			Socket.SendTo("127.0.0.1", 1111, packet.message.c_str(), packet.message.size()); // pierwszy pusty
 			Socket.RecvFrom(buffer, 100); // odebrany pierwszy ze state i ID
 			packet.message = string(buffer);
 			packet.unpacking();
-			switch (packet.getState())
+			/// nowe fory
+			if (packet.getOP() == "o" && packet.getPO() == "OdbierzID")
 			{
-
-			case 1:
-			{
-				packet.setState(2);
+				packet.setOP("O");
+				packet.setPO("LosujZakres");
 				packet.setTime(nadawanie_czasu());
 				packet.packing();
 				getLR = true;
-				break;
 			}
-			case 3:
+			else if (packet.getOP() == "o"&&packet.getPO() == "OdbierzZakres")
 			{
 				//Socket.RecvFrom(buffer, 100); // odbieramy Lvalue
 				if (getLR)
@@ -68,7 +64,12 @@ Client::Client()
 					packet.message = string(buffer);
 					packet.unpacking();
 					L1 = packet.getLiczba();
-					packet.setState(2);
+
+					/// Zamiast setState
+					/// cin>>string;
+					/// packet.setOP("Losuj_zakresR");
+					packet.setOP("O");
+					packet.setPO("LosujZakres");
 					getLR = false;
 					packet.packing();
 				}
@@ -76,13 +77,13 @@ Client::Client()
 				{
 					packet.message = string(buffer);
 					L2 = packet.getLiczba();
-					packet.setState(4);
+					/// Prosba o rozpoczecie zgadywania
+					packet.setOP("O");
+					packet.setPO("Request");
 					packet.packing();
 				}
-					break;
-				
 			}
-			case 5:
+			else if (packet.getOP() == "o"&&packet.getPO() == "Pick")
 			{
 				if (inicjalizacja)
 				{
@@ -91,21 +92,20 @@ Client::Client()
 				}
 				// status wysylania liczby
 				inicjalizacja = false;
-				packet.setOP("Sprawdz");
 				cout << "Twoja liczba: ";
 				cin >> client_number;
 				packet.setLiczba(client_number);
-				packet.setState(6);
+				/// Wyslij liczbe
+				/// set State
+				packet.setOP("O");
+				packet.setPO("Sprawdz");
 				packet.setTime(nadawanie_czasu());
 				packet.packing();
-				break;
 			}
-			case 7:
+			else if (packet.getOP() == "o"&&packet.getPO() == "End")
 			{
 				// Klient odgadnal liczbe!
 				cout << "Liczba zostala znaleziona. Gratulacje!" << endl;
-				break;
-			}
 			}
 		}
 	}
